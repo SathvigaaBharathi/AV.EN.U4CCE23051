@@ -16,7 +16,7 @@ export async function Log(stack, level, pkg, message) {
     
     // just using fetch so we don't need axios
     try {
-        const response = await fetch('http://202.207.122.201/evaluation-service/logs', {
+        const response = await fetch('http://20.207.122.201/evaluation-service/logs', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
