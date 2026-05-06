@@ -80,7 +80,7 @@ export default function NotificationCenter() {
       
       const res = await fetch(url, {
         headers: {
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJNYXBDbGFpbXMiOnsiYXVkIjoiaHR0cDovLzIwLjI0NC41Ni4xNDQvZXZhbHVhdGlvbi1zZXJ2aWNlIiwiZW1haWwiOiJhdi5lbi51NGNjZTIzMDUxQGF2LnN0dWRlbnRzLmFtcml0YS5lZHUiLCJleHAiOjE3NzgwNjI2NjgsImlhdCI6MTc3ODA2MTc2OCwiaXNzIjoiQWZmb3JkIE1lZGljYWwgVGVjaG5vbG9naWVzIFByaXZhdGUgTGltaXRlZCIsImp0aSI6IjI2MWVmNDY5LWIxNTUtNGQ5MS1hOTgzLTVlMzdiOGUwZThkMSIsImxvY2FsZSI6ImVuLUlOIiwibmFtZSI6InNhdGh2aWdhYSBiIiwic3ViIjoiZmY4YWM0OGMtMGYzMy00NWI4LThhN2ItMDBiMDkyYWFiNTM1In0sImVtYWlsIjoiYXYuZW4udTRjY2UyMzA1MUBhdi5zdHVkZW50cy5hbXJpdGEuZWR1IiwibmFtZSI6InNhdGh2aWdhYSBiIiwicm9sbE5vIjoiYXYuZW4udTRjY2UyMzA1MSIsImFjY2Vzc0NvZGUiOiJQVEJNbVEiLCJjbGllbnRJRCI6ImZmOGFjNDhjLTBmMzMtNDViOC04YTdiLTAwYjA5MmFhYjUzNSIsImNsaWVudFNlY3JldCI6InZDd3RrQmJuQ0pDaEFOQUYifQ.Zb5jgxPrRMth2ASD6zNH4uGWYbIrE5sczsTXZoSoohM'
+          'Authorization': `Bearer ${import.meta.env.VITE_API_TOKEN}`
         }
       });
       
