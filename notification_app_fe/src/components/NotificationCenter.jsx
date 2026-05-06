@@ -64,7 +64,19 @@ export default function NotificationCenter() {
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const url = `/api/evaluation-service/notifications?limit=${limit}&page=1&notification_type=${typeFilter}`;
+      // Build query params - only add notification_type if not 'all'
+      const params = new URLSearchParams({
+        limit: limit.toString(),
+        page: '1'
+      });
+      
+      if (typeFilter !== 'all') {
+        params.append('notification_type', typeFilter);
+      }
+      
+      const url = `/api/evaluation-service/notifications?${params.toString()}`;
+      
+      console.log('Fetching from:', url);
       
       const res = await fetch(url, {
         headers: {
@@ -72,16 +84,20 @@ export default function NotificationCenter() {
         }
       });
       
+      console.log('Response status:', res.status);
+      
       if (!res.ok) {
-         // Log the error to console for debugging if it's a token issue
          const errText = await res.text();
-         console.error("API Error: ", errText);
-         throw new Error('Failed to fetch data');
+         console.error("API Error Response:", errText);
+         console.error("Status:", res.status, res.statusText);
+         throw new Error(`API returned ${res.status}: ${errText}`);
       }
 
       const data = await res.json();
+      console.log('Received data:', data);
       setNotifications(data.notifications || []);
     } catch (error) {
+      console.error("Fetch error:", error);
       Log("frontend", "error", "ui", error.message);
     } finally {
       setLoading(false);
@@ -96,7 +112,11 @@ export default function NotificationCenter() {
     if (tabValue === 0) {
       return notifications;
     } else {
-      const sorted = sortPriorityInbox(notifications);
+      let sorted = sortPriorityInbox(notifications);
+      // apply type filter client-side for priority inbox
+      if (typeFilter !== 'all') {
+        sorted = sorted.filter(n => n.Type === typeFilter);
+      }
       return sorted.slice(0, limit);
     }
   };
@@ -161,15 +181,12 @@ export default function NotificationCenter() {
                   key={notif.ID || index}
                   sx={{ 
                     borderBottom: '1px solid #eee',
-                    bgcolor: isRead ? 'transparent' : '#e3f2fd' 
+                    bgcolor: isRead ? 'transparent' : '#e3f2fd',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    pr: 1
                   }}
-                  secondaryAction={
-                    !isRead && (
-                      <Button size="small" onClick={() => markAsRead(notif.ID)}>
-                        Mark Read
-                      </Button>
-                    )
-                  }
                 >
                   <ListItemText 
                     primary={
@@ -179,14 +196,21 @@ export default function NotificationCenter() {
                     }
                     secondary={new Date(notif.Timestamp).toLocaleString()} 
                   />
-                  <Chip 
-                    label={notif.Type || 'General'} 
-                    color={
-                      notif.Type === 'Placement' ? 'error' : 
-                      notif.Type === 'Result' ? 'warning' : 'primary'
-                    }
-                    size="small"
-                  />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+                    <Chip 
+                      label={notif.Type || 'General'} 
+                      color={
+                        notif.Type === 'Placement' ? 'error' : 
+                        notif.Type === 'Result' ? 'warning' : 'primary'
+                      }
+                      size="small"
+                    />
+                    {!isRead && (
+                      <Button size="small" variant="outlined" onClick={() => markAsRead(notif.ID)}>
+                        Mark Read
+                      </Button>
+                    )}
+                  </Box>
                 </ListItem>
               )
             })}
