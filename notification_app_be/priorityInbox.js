@@ -10,8 +10,8 @@ function getPriorityInbox(notifications) {
 
     // sort them based on weight and then by recency if weight is the same
     unreadNotifications.sort((a, b) => {
-        const weightA = getNotificationWeight(a.type);
-        const weightB = getNotificationWeight(b.type);
+        const weightA = getNotificationWeight(a.Type || a.type);
+        const weightB = getNotificationWeight(b.Type || b.type);
 
         if (weightA !== weightB) {
             // higher weight comes first
@@ -19,8 +19,8 @@ function getPriorityInbox(notifications) {
         }
 
         // if weights are equal, newer timestamp comes first
-        const timeA = new Date(a.timestamp).getTime();
-        const timeB = new Date(b.timestamp).getTime();
+        const timeA = new Date(a.Timestamp || a.timestamp).getTime();
+        const timeB = new Date(b.Timestamp || b.timestamp).getTime();
         
         return timeB - timeA;
     });

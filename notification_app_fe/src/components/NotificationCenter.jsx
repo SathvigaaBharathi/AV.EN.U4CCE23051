@@ -13,7 +13,8 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  Button
 } from '@mui/material';
 import { Log } from '../utils/logger';
 
@@ -21,17 +22,19 @@ import { Log } from '../utils/logger';
 function sortPriorityInbox(notifs) {
   if (!notifs || !Array.isArray(notifs)) return [];
 
-  const unread = notifs.filter(n => n.isRead === false);
+  // Filter out read notifications using localStorage
+  const readIds = JSON.parse(localStorage.getItem('readNotifications') || '[]');
+  const unread = notifs.filter(n => !readIds.includes(n.ID));
 
   unread.sort((a, b) => {
-    let weightA = a.type === 'Placement' ? 3 : a.type === 'Result' ? 2 : a.type === 'Event' ? 1 : 0;
-    let weightB = b.type === 'Placement' ? 3 : b.type === 'Result' ? 2 : b.type === 'Event' ? 1 : 0;
+    let weightA = a.Type === 'Placement' ? 3 : a.Type === 'Result' ? 2 : a.Type === 'Event' ? 1 : 0;
+    let weightB = b.Type === 'Placement' ? 3 : b.Type === 'Result' ? 2 : b.Type === 'Event' ? 1 : 0;
 
     if (weightA !== weightB) {
       return weightB - weightA;
     }
-    const tA = new Date(a.timestamp).getTime();
-    const tB = new Date(b.timestamp).getTime();
+    const tA = new Date(a.Timestamp).getTime();
+    const tB = new Date(b.Timestamp).getTime();
     return tB - tA;
   });
 
@@ -42,6 +45,7 @@ export default function NotificationCenter() {
   const [tabValue, setTabValue] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [readIds, setReadIds] = useState(JSON.parse(localStorage.getItem('readNotifications') || '[]'));
   
   // Filters
   const [limit, setLimit] = useState(10);
@@ -49,6 +53,12 @@ export default function NotificationCenter() {
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
+  };
+
+  const markAsRead = (id) => {
+    const newReadIds = [...readIds, id];
+    setReadIds(newReadIds);
+    localStorage.setItem('readNotifications', JSON.stringify(newReadIds));
   };
 
   const fetchNotifications = async () => {
@@ -62,7 +72,12 @@ export default function NotificationCenter() {
         }
       });
       
-      if (!res.ok) throw new Error('Failed to fetch data');
+      if (!res.ok) {
+         // Log the error to console for debugging if it's a token issue
+         const errText = await res.text();
+         console.error("API Error: ", errText);
+         throw new Error('Failed to fetch data');
+      }
 
       const data = await res.json();
       setNotifications(data.notifications || []);
@@ -82,7 +97,6 @@ export default function NotificationCenter() {
       return notifications;
     } else {
       const sorted = sortPriorityInbox(notifications);
-      // only show top 'n' limit on priority tab, even if backend returned more
       return sorted.slice(0, limit);
     }
   };
@@ -140,37 +154,46 @@ export default function NotificationCenter() {
           </Box>
         ) : displayList.length > 0 ? (
           <List>
-            {displayList.map((notif, index) => (
-              <ListItem 
-                key={notif.id || index}
-                sx={{ 
-                  borderBottom: '1px solid #eee',
-                  // Distinguish unread notifications clearly
-                  bgcolor: notif.isRead ? 'transparent' : '#e3f2fd' 
-                }}
-              >
-                <ListItemText 
-                  primary={
-                    <Typography variant="body1" fontWeight={notif.isRead ? 'normal' : 'bold'}>
-                      {notif.message || 'No message'}
-                    </Typography>
+            {displayList.map((notif, index) => {
+              const isRead = readIds.includes(notif.ID);
+              return (
+                <ListItem 
+                  key={notif.ID || index}
+                  sx={{ 
+                    borderBottom: '1px solid #eee',
+                    bgcolor: isRead ? 'transparent' : '#e3f2fd' 
+                  }}
+                  secondaryAction={
+                    !isRead && (
+                      <Button size="small" onClick={() => markAsRead(notif.ID)}>
+                        Mark Read
+                      </Button>
+                    )
                   }
-                  secondary={new Date(notif.timestamp).toLocaleString()} 
-                />
-                <Chip 
-                  label={notif.type || 'General'} 
-                  color={
-                    notif.type === 'Placement' ? 'error' : 
-                    notif.type === 'Result' ? 'warning' : 'primary'
-                  }
-                  size="small"
-                />
-              </ListItem>
-            ))}
+                >
+                  <ListItemText 
+                    primary={
+                      <Typography variant="body1" fontWeight={isRead ? 'normal' : 'bold'}>
+                        {notif.Message || 'No message'}
+                      </Typography>
+                    }
+                    secondary={new Date(notif.Timestamp).toLocaleString()} 
+                  />
+                  <Chip 
+                    label={notif.Type || 'General'} 
+                    color={
+                      notif.Type === 'Placement' ? 'error' : 
+                      notif.Type === 'Result' ? 'warning' : 'primary'
+                    }
+                    size="small"
+                  />
+                </ListItem>
+              )
+            })}
           </List>
         ) : (
           <Typography variant="body1" sx={{ textAlign: 'center', mt: 5, color: 'text.secondary' }}>
-            No notifications to show.
+            No notifications to show. (If testing, check if token is valid)
           </Typography>
         )}
       </Paper>
