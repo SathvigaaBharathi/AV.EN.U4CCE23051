@@ -1,5 +1,5 @@
 // logger.js
-// simple custom logger for the affordmed test
+// simple custom logger for the notification system
 
 /**
  * Sends logs to the central evaluation service
