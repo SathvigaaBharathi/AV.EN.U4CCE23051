@@ -57,8 +57,12 @@ export default function NotificationCenter() {
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      // fetching with basic params
-      const res = await fetch('http://20.207.122.201/evaluation-service/notifications?limit=50&page=1&notification_type=all');
+      // fetching with basic params and auth token
+      const res = await fetch('http://20.207.122.201/evaluation-service/notifications?limit=50&page=1&notification_type=all', {
+        headers: {
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJNYXBDbGFpbXMiOnsiYXVkIjoiaHR0cDovLzIwLjI0NC41Ni4xNDQvZXZhbHVhdGlvbi1zZXJ2aWNlIiwiZW1haWwiOiJhdi5lbi51NGNjZTIzMDUxQGF2LnN0dWRlbnRzLmFtcml0YS5lZHUiLCJleHAiOjE3NzgwNjAyNzUsImlhdCI6MTc3ODA1OTM3NSwiaXNzIjoiQWZmb3JkIE1lZGljYWwgVGVjaG5vbG9naWVzIFByaXZhdGUgTGltaXRlZCIsImp0aSI6IjdiYzg4MzY0LTQwOTYtNDBjZS05NGYzLTk2OGNiZDRhOGY3MSIsImxvY2FsZSI6ImVuLUlOIiwibmFtZSI6InNhdGh2aWdhYSBiIiwic3ViIjoiZmY4YWM0OGMtMGYzMy00NWI4LThhN2ItMDBiMDkyYWFiNTM1In0sImVtYWlsIjoiYXYuZW4udTRjY2UyMzA1MUBhdi5zdHVkZW50cy5hbXJpdGEuZWR1IiwibmFtZSI6InNhdGh2aWdhYSBiIiwicm9sbE5vIjoiYXYuZW4udTRjY2UyMzA1MSIsImFjY2Vzc0NvZGUiOiJQVEJNbVEiLCJjbGllbnRJRCI6ImZmOGFjNDhjLTBmMzMtNDViOC04YTdiLTAwYjA5MmFhYjUzNSIsImNsaWVudFNlY3JldCI6InZDd3RrQmJuQ0pDaEFOQUYifQ.9-f9SF8LRr1WX92UdqMLUGMDz37oNvKGAXaP-GmHwtg'
+        }
+      });
       
       if (!res.ok) {
         throw new Error('Failed to fetch data from server');
