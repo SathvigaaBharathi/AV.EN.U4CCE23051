@@ -18,89 +18,59 @@ import {
 } from '@mui/material';
 import { Log } from '../utils/logger';
 
-// Priority sorting logic from Stage 6
 function sortPriorityInbox(notifs) {
   if (!notifs || !Array.isArray(notifs)) return [];
 
-  // Filter out read notifications using localStorage
   const readIds = JSON.parse(localStorage.getItem('readNotifications') || '[]');
   const unread = notifs.filter(n => !readIds.includes(n.ID));
 
   unread.sort((a, b) => {
-    let weightA = a.Type === 'Placement' ? 3 : a.Type === 'Result' ? 2 : a.Type === 'Event' ? 1 : 0;
-    let weightB = b.Type === 'Placement' ? 3 : b.Type === 'Result' ? 2 : b.Type === 'Event' ? 1 : 0;
-
-    if (weightA !== weightB) {
-      return weightB - weightA;
-    }
-    const tA = new Date(a.Timestamp).getTime();
-    const tB = new Date(b.Timestamp).getTime();
-    return tB - tA;
+    const weightA = a.Type === 'Placement' ? 3 : a.Type === 'Result' ? 2 : a.Type === 'Event' ? 1 : 0;
+    const weightB = b.Type === 'Placement' ? 3 : b.Type === 'Result' ? 2 : b.Type === 'Event' ? 1 : 0;
+    if (weightA !== weightB) return weightB - weightA;
+    return new Date(b.Timestamp).getTime() - new Date(a.Timestamp).getTime();
   });
 
   return unread;
 }
-
-const TOKEN = import.meta.env.VITE_API_TOKEN || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJNYXBDbGFpbXMiOnsiYXVkIjoiaHR0cDovLzIwLjI0NC41Ni4xNDQvZXZhbHVhdGlvbi1zZXJ2aWNlIiwiZW1haWwiOiJhdi5lbi51NGNjZTIzMDUxQGF2LnN0dWRlbnRzLmFtcml0YS5lZHUiLCJleHAiOjE3NzgwNjI2NjgsImlhdCI6MTc3ODA2MTc2OCwiaXNzIjoiQWZmb3JkIE1lZGljYWwgVGVjaG5vbG9naWVzIFByaXZhdGUgTGltaXRlZCIsImp0aSI6IjI2MWVmNDY5LWIxNTUtNGQ5MS1hOTgzLTVlMzdiOGUwZThkMSIsImxvY2FsZSI6ImVuLUlOIiwibmFtZSI6InNhdGh2aWdhYSBiIiwic3ViIjoiZmY4YWM0OGMtMGYzMy00NWI4LThhN2ItMDBiMDkyYWFiNTM1In0sImVtYWlsIjoiYXYuZW4udTRjY2UyMzA1MUBhdi5zdHVkZW50cy5hbXJpdGEuZWR1IiwibmFtZSI6InNhdGh2aWdhYSBiIiwicm9sbE5vIjoiYXYuZW4udTRjY2UyMzA1MSIsImFjY2Vzc0NvZGUiOiJQVEJNbVEiLCJjbGllbnRJRCI6ImZmOGFjNDhjLTBmMzMtNDViOC04YTdiLTAwYjA5MmFhYjUzNSIsImNsaWVudFNlY3JldCI6InZDd3RrQmJuQ0pDaEFOQUYifQ.Zb5jgxPrRMth2ASD6zNH4uGWYbIrE5sczsTXZoSoohM';
 
 export default function NotificationCenter() {
   const [tabValue, setTabValue] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [readIds, setReadIds] = useState(JSON.parse(localStorage.getItem('readNotifications') || '[]'));
-  
-  // Filters
   const [limit, setLimit] = useState(10);
   const [typeFilter, setTypeFilter] = useState('all');
 
-  const handleTabChange = (_, newValue) => {
-    setTabValue(newValue);
-  };
+  const handleTabChange = (_, newValue) => setTabValue(newValue);
 
   const markAsRead = (id) => {
-    const newReadIds = [...readIds, id];
-    setReadIds(newReadIds);
-    localStorage.setItem('readNotifications', JSON.stringify(newReadIds));
+    const updated = [...readIds, id];
+    setReadIds(updated);
+    localStorage.setItem('readNotifications', JSON.stringify(updated));
   };
 
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      // Build query params - only add notification_type if not 'all'
-      const params = new URLSearchParams({
-        limit: limit.toString(),
-        page: '1'
-      });
-      
-      if (typeFilter !== 'all') {
-        params.append('notification_type', typeFilter);
-      }
-      
-      const url = `/api/evaluation-service/notifications?${params.toString()}`;
-      
-      console.log('Fetching from:', url);
-      
-      const res = await fetch(url, {
+      const params = new URLSearchParams({ limit: limit.toString(), page: '1' });
+      if (typeFilter !== 'all') params.append('notification_type', typeFilter);
+
+      const res = await fetch(`/api/evaluation-service/notifications?${params}`, {
         headers: {
-          'Authorization': `Bearer ${TOKEN}`
+          'Authorization': `Bearer ${import.meta.env.VITE_API_TOKEN}`
         }
       });
-      
-      console.log('Response status:', res.status);
-      
+
       if (!res.ok) {
-         const errText = await res.text();
-         console.error("API Error Response:", errText);
-         console.error("Status:", res.status, res.statusText);
-         throw new Error(`API returned ${res.status}: ${errText}`);
+        const errText = await res.text();
+        throw new Error(`${res.status}: ${errText}`);
       }
 
       const data = await res.json();
-      console.log('Received data:', data);
       setNotifications(data.notifications || []);
     } catch (error) {
-      console.error("Fetch error:", error);
-      Log("frontend", "error", "ui", error.message);
+      Log('frontend', 'error', 'ui', error.message);
     } finally {
       setLoading(false);
     }
@@ -111,25 +81,17 @@ export default function NotificationCenter() {
   }, [limit, typeFilter]);
 
   const getDisplayNotifs = () => {
-    if (tabValue === 0) {
-      return notifications;
-    } else {
-      let sorted = sortPriorityInbox(notifications);
-      // apply type filter client-side for priority inbox
-      if (typeFilter !== 'all') {
-        sorted = sorted.filter(n => n.Type === typeFilter);
-      }
-      return sorted.slice(0, limit);
-    }
+    if (tabValue === 0) return notifications;
+    let sorted = sortPriorityInbox(notifications);
+    if (typeFilter !== 'all') sorted = sorted.filter(n => n.Type === typeFilter);
+    return sorted.slice(0, limit);
   };
 
   const displayList = getDisplayNotifs();
 
   return (
     <Box sx={{ width: '100%', maxWidth: 800, margin: '0 auto', p: 2 }}>
-      <Typography variant="h4" gutterBottom>
-        Notification Center
-      </Typography>
+      <Typography variant="h4" gutterBottom>Notification Center</Typography>
 
       <Paper elevation={3} sx={{ mb: 2 }}>
         <Tabs value={tabValue} onChange={handleTabChange} centered variant="fullWidth">
@@ -141,25 +103,16 @@ export default function NotificationCenter() {
       {tabValue === 1 && (
         <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
           <FormControl size="small" sx={{ minWidth: 120 }}>
-            <InputLabel>Show Top 'N'</InputLabel>
-            <Select
-              value={limit}
-              label="Show Top 'N'"
-              onChange={(e) => setLimit(e.target.value)}
-            >
+            <InputLabel>Show Top N</InputLabel>
+            <Select value={limit} label="Show Top N" onChange={(e) => setLimit(e.target.value)}>
               <MenuItem value={10}>Top 10</MenuItem>
               <MenuItem value={15}>Top 15</MenuItem>
               <MenuItem value={20}>Top 20</MenuItem>
             </Select>
           </FormControl>
-
           <FormControl size="small" sx={{ minWidth: 150 }}>
             <InputLabel>Type Filter</InputLabel>
-            <Select
-              value={typeFilter}
-              label="Type Filter"
-              onChange={(e) => setTypeFilter(e.target.value)}
-            >
+            <Select value={typeFilter} label="Type Filter" onChange={(e) => setTypeFilter(e.target.value)}>
               <MenuItem value="all">All Types</MenuItem>
               <MenuItem value="Event">Events</MenuItem>
               <MenuItem value="Result">Results</MenuItem>
@@ -179,9 +132,9 @@ export default function NotificationCenter() {
             {displayList.map((notif, index) => {
               const isRead = readIds.includes(notif.ID);
               return (
-                <ListItem 
+                <ListItem
                   key={notif.ID || index}
-                  sx={{ 
+                  sx={{
                     borderBottom: '1px solid #eee',
                     bgcolor: isRead ? 'transparent' : '#e3f2fd',
                     display: 'flex',
@@ -190,21 +143,18 @@ export default function NotificationCenter() {
                     pr: 1
                   }}
                 >
-                  <ListItemText 
+                  <ListItemText
                     primary={
                       <Typography variant="body1" fontWeight={isRead ? 'normal' : 'bold'}>
                         {notif.Message || 'No message'}
                       </Typography>
                     }
-                    secondary={new Date(notif.Timestamp).toLocaleString()} 
+                    secondary={new Date(notif.Timestamp).toLocaleString()}
                   />
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
-                    <Chip 
-                      label={notif.Type || 'General'} 
-                      color={
-                        notif.Type === 'Placement' ? 'error' : 
-                        notif.Type === 'Result' ? 'warning' : 'primary'
-                      }
+                    <Chip
+                      label={notif.Type || 'General'}
+                      color={notif.Type === 'Placement' ? 'error' : notif.Type === 'Result' ? 'warning' : 'primary'}
                       size="small"
                     />
                     {!isRead && (
@@ -214,12 +164,12 @@ export default function NotificationCenter() {
                     )}
                   </Box>
                 </ListItem>
-              )
+              );
             })}
           </List>
         ) : (
           <Typography variant="body1" sx={{ textAlign: 'center', mt: 5, color: 'text.secondary' }}>
-            No notifications to show. (If testing, check if token is valid)
+            No notifications to show.
           </Typography>
         )}
       </Paper>
