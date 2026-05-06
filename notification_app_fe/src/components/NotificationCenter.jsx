@@ -54,7 +54,7 @@ export default function NotificationCenter() {
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const url = `http://20.207.122.201/evaluation-service/notifications?limit=${limit}&page=1&notification_type=${typeFilter}`;
+      const url = `/api/evaluation-service/notifications?limit=${limit}&page=1&notification_type=${typeFilter}`;
       
       const res = await fetch(url, {
         headers: {
